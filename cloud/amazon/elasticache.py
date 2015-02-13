@@ -64,16 +64,21 @@ options:
     required: false
     default: ['default']
     version_added: "1.6"
-  subnet_group_name:
-   description: 
-     - Add a non-default elastic-cache subnet group
-   required: false
-   default: None
   cache_security_groups:
     description:
       - A list of cache security group names to associate with this cache cluster
     required: false
     default: ['default']
+  parameter_group_name:
+    description: 
+      - Specify non-default parameter group names to be associated with cache cluster
+    requiredL false
+    default: None
+  subnet_group_name:
+    description: 
+      - Add a non-default elastic-cache subnet group
+    required: false
+    default: None
   zone:
     description:
       - The EC2 Availability Zone in which the cache cluster will be created
@@ -160,7 +165,7 @@ class ElastiCacheManager(object):
     EXIST_STATUSES = ['available', 'creating', 'rebooting', 'modifying']
 
     def __init__(self, module, name, engine, cache_engine_version, node_type,
-                 num_nodes, cache_port, cache_security_groups, security_group_ids, subnet_group_name, zone, wait, hard_modify, aws_access_key, aws_secret_key, region):
+                 num_nodes, cache_port, cache_security_groups, security_group_ids, parameter_group_name, subnet_group_name, zone, wait, hard_modify, aws_access_key, aws_secret_key, region):
         self.module = module
         self.name = name
         self.engine = engine
@@ -173,6 +178,7 @@ class ElastiCacheManager(object):
         self.zone = zone
         self.wait = wait
         self.hard_modify = hard_modify
+        self.parameter_group_name = parameter_group_name
         self.subnet_group_name = subnet_group_name
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key
@@ -222,9 +228,10 @@ class ElastiCacheManager(object):
                                                       num_cache_nodes=self.num_nodes,
                                                       cache_node_type=self.node_type,
                                                       engine=self.engine,
+                                                      cache_parameter_group_name=self.parameter_group_name,
                                                       cache_subnet_group_name=self.subnet_group_name,
                                                       cache_security_group_names=self.cache_security_groups,
-                                                                                                                                                     security_group_ids=self.security_group_ids,
+                                                      security_group_ids=self.security_group_ids,
                                                       preferred_availability_zone=self.zone,
                                                       port=self.cache_port)
         except boto.exception.BotoServerError, e:
@@ -299,6 +306,7 @@ class ElastiCacheManager(object):
                                                   num_cache_nodes=self.num_nodes,
                                                   cache_node_ids_to_remove=nodes_to_remove,
                                                   cache_security_group_names=self.cache_security_groups,
+                                                  cache_parameter_group_name=self.cache_parameter_group_name,
                                                   security_group_ids=self.security_group_ids,
                                                   apply_immediately=True,
                                                   engine_version=self.cache_engine_version)
@@ -493,7 +501,8 @@ def main():
                                    'type': 'list'},
             zone={'required': False, 'default': None},
             wait={'required': False, 'type' : 'bool', 'default': True},
-            hard_modify={'required': False, 'type': 'bool', 'default': False},
+            hard_modify={'required': False, 'type': 'bool', 'default': False},    
+            parameter_group_name={'required': False, 'default': 'None'},
             subnet_group_name={'required': False, 'default': 'None'}
         )
     )
@@ -516,6 +525,7 @@ def main():
     zone = module.params['zone']
     wait = module.params['wait']
     hard_modify = module.params['hard_modify']
+    parameter_group_name = module.params[ 'parameter_group_name' ]
     subnet_group_name = module.params['subnet_group_name']
 
     if state == 'present' and not num_nodes:
@@ -528,7 +538,8 @@ def main():
                                              cache_engine_version, node_type,
                                              num_nodes, cache_port,
                                              cache_security_groups,
-                                             security_group_ids, subnet_group_name, zone, wait,
+                                             security_group_ids, parameter_group_name, 
+                                             subnet_group_name, zone, wait,
                                              hard_modify, aws_access_key,
                                              aws_secret_key, region)
 
